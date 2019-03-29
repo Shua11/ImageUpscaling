@@ -11,6 +11,14 @@ import datetime
 from keras import layers, models
 from keras.preprocessing.image import ImageDataGenerator, img_to_array, array_to_img, load_img
 
+####### GPU Session Settings ####################################
+from keras.backend.tensorflow_backend import set_session
+import tensorflow as tf
+
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.3
+set_session(tf.Session(config=config))
+#################################################################
 
 datagen = ImageDataGenerator(
         width_shift_range=0.2,
