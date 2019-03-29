@@ -16,9 +16,10 @@ datagen = ImageDataGenerator(
         horizontal_flip=True,
         fill_mode='nearest')
 
-images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(100)]
-y_train = np.array([img_to_array(x)[:768, :768, :]/255 for x in images])
-x_train = np.array([img_to_array(x.resize((384,384)))[:384, :384, :]/255 for x in images])
+images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(10)]
+images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(10)]
+x_train = [img_to_array(x)/255 for x in images2]
+y_train = [img_to_array(x)/255 for x in images]
 
 ######################
 input_img = layers.Input(shape=(None, None, 3))
@@ -26,14 +27,15 @@ input_img = layers.Input(shape=(None, None, 3))
 x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(input_img)
 x = layers.UpSampling2D((2, 2))(x)
 x = layers.Conv2D(8, (5, 5), activation='relu', padding='same')(x)
-decoded = layers.Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
+x = layers.UpSampling2D((2, 2))(x)
+output = layers.Conv2D(3, (5, 5), activation='sigmoid', padding='same')(x)
 
-autoencoder = models.Model(input_img, decoded)
-autoencoder.compile(optimizer='adadelta', loss='mean_absolute_error')
+upscaler = models.Model(input_img, output)
+upscaler.compile(optimizer='adadelta', loss='mean_absolute_error')
 
 ######################
 
-autoencoder.fit(x_train, y_train, epochs=1, batch_size=5, shuffle=True)
+for i in range(len(x_train)):
+    upscaler.fit(np.array([x_train[i]]), np.array([y_train[i]]), epochs=1, batch_size=5, shuffle=True)
 
-#decoded_imgs = autoencoder.predict(x_test)
-
+#upscaled_imgs = upscaler.predict(x_train)
