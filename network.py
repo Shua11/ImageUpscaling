@@ -7,19 +7,37 @@ Created on Wed Mar 27 11:23:44 2019
 """
 import os
 import numpy as np
-import datetime 
+from datetime import datetime 
 from keras import layers, models
-from keras.preprocessing.image import ImageDataGenerator, img_to_array, array_to_img, load_img
+from keras.utils import Sequence
+from keras.preprocessing.image import img_to_array, array_to_img, load_img
 
+class croppedSequence(Sequence):
 
-datagen = ImageDataGenerator(
-        width_shift_range=0.2,
-        height_shift_range=0.2,
-        horizontal_flip=True,
-        fill_mode='nearest')
+    def __init__(self, x_set, y_set, batch_size):
+        self.x, self.y = x_set, y_set
+        self.batch_size = batch_size
 
-images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(10)]
-images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(10)]
+    def __len__(self):
+        return int(np.ceil(len(self.x) / float(self.batch_size)))
+
+    def __getitem__(self, idx):
+        xdata = np.zeros((self.batch_size,  300,  300, 3))
+        ydata = np.zeros((self.batch_size, 1200, 1200, 3))
+        for i in range(self.batch_size):
+            xdata[i], ydata[i] = self.getRandomCrop()
+        return xdata, ydata
+    
+    def getRandomCrop(self):
+        i = np.random.randint(0, len(self.x))
+        w,h,_ = self.x[i].shape
+        x = np.random.randint(0, w-299)
+        y = np.random.randint(0, h-299)
+        
+        return (self.x[i][x:x+300, y:y+300, :], self.y[i][x*4:x*4+1200, y*4:y*4+1200, :])
+
+images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(800)]
+images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(800)]
 x_train = [img_to_array(x)/255 for x in images2]
 y_train = [img_to_array(x)/255 for x in images]
 
@@ -30,22 +48,35 @@ x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(input_img)
 x = layers.UpSampling2D((2, 2))(x)
 x = layers.Conv2D(8, (5, 5), activation='relu', padding='same')(x)
 x = layers.UpSampling2D((2, 2))(x)
+x = layers.Conv2D(8, (5, 5), activation='relu', padding='same')(x)
 output = layers.Conv2D(3, (5, 5), activation='sigmoid', padding='same')(x)
 
 upscaler = models.Model(input_img, output)
 upscaler.compile(optimizer='adadelta', loss='mean_absolute_error')
 
-######################
+###################### Train
 
+train_generator = croppedSequence(x_train, y_train, 10)
+
+upscaler.fit_generator(
+        train_generator,
+        steps_per_epoch=20,
+        epochs=20)
+"""
 for epoch in range(1):
-    print("epoch #{}".format(epoch))
+    print("epoch #{}".format(epoch+1))
+    start = datetime.now()
     for i in range(len(x_train)):
+        print("  image #{}".format(i+1))
         upscaler.fit(np.array([x_train[i]]), np.array([y_train[i]]),
                      epochs=1, batch_size=5, shuffle=True,
                      verbose=0)
- 
-outdir = "../output_{}".format(datetime.datetime.now().strftime("%y%m%d"))
+    print("time: #{}".format(datetime.now() - start))
+ """
+##################### Output data
+
+outdir = "../output_{}".format(datetime.now().strftime("%y%m%d%H%M"))
 os.mkdir(outdir)
         
 for i,x in enumerate(x_train):
-    array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir,i+1))
+    array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir, i+1))
