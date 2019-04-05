@@ -51,21 +51,37 @@ class croppedSequence(Sequence):
                 self.y[i][x * self.scale: (x + self.cropsize) * self.scale,
                           y * self.scale: (y + self.cropsize) * self.scale, :])
 
+##### Load images for training/testing #####
 images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
 images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
 x_train = [img_to_array(x)/255 for x in images2]
 y_train = [img_to_array(x)/255 for x in images]
 
-######################
-input_img = layers.Input(shape=(None, None, 3))
 
-x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(input_img)
-x = layers.UpSampling2D((2, 2))(x)
-x = layers.Conv2D(8, (5, 5), activation='relu', padding='same')(x)
-output = layers.Conv2D(3, (5, 5), activation='sigmoid', padding='same')(x)
+##### Start a new training model or load a pre-existing one? #####
+is_Loading_Exisiting_Model = input("Using pre-existing model (type \"y\" or \"n\")? ")
+path_to_model = ""
+upscaler = None
 
-upscaler = models.Model(input_img, output)
-upscaler.compile(optimizer='adadelta', loss='mean_absolute_error')
+## Ensure user types in valid option ##
+while is_Loading_Exisiting_Model != "y" and is_Loading_Exisiting_Model != "n":
+    is_Loading_Exisiting_Model = input("Please type y/n: ")
+
+## Load previously created model ##
+if is_Loading_Exisiting_Model == "y":
+    path_to_model = input("Type path to model: ")
+    upscaler = models.load_model(path_to_model)
+
+else:
+    input_img = layers.Input(shape=(None, None, 3))
+
+    x = layers.Conv2D(8, (3, 3), activation='relu', padding='same')(input_img)
+    x = layers.UpSampling2D((2, 2))(x)
+    x = layers.Conv2D(8, (5, 5), activation='relu', padding='same')(x)
+    output = layers.Conv2D(3, (5, 5), activation='sigmoid', padding='same')(x)
+
+    upscaler = models.Model(input_img, output)
+    upscaler.compile(optimizer='adadelta', loss='mean_absolute_error')
 
 ###################### Train
 
