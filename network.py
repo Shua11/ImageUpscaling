@@ -11,14 +11,42 @@ from datetime import datetime
 from keras import layers, models
 from keras.utils import Sequence
 from keras.preprocessing.image import img_to_array, array_to_img, load_img
+import tensorflow as tf
+import keras.backend as K
+
+def ssim_metric(y_true, y_pred):
+    # source: https://gist.github.com/Dref360/a48feaecfdb9e0609c6a02590fd1f91b
+    y_true = tf.transpose(y_true, [0, 2, 3, 1])
+    y_pred = tf.transpose(y_pred, [0, 2, 3, 1])
+    patches_true = tf.extract_image_patches(y_true, [1, 5, 5, 1], [1, 2, 2, 1], [1, 1, 1, 1], "SAME")
+    patches_pred = tf.extract_image_patches(y_pred, [1, 5, 5, 1], [1, 2, 2, 1], [1, 1, 1, 1], "SAME")
+
+    u_true = K.mean(patches_true, axis=3)
+    u_pred = K.mean(patches_pred, axis=3)
+    var_true = K.var(patches_true, axis=3)
+    var_pred = K.var(patches_pred, axis=3)
+    std_true = K.sqrt(var_true)
+    std_pred = K.sqrt(var_pred)
+    c1 = 0.01 ** 2
+    c2 = 0.03 ** 2
+    ssim = (2 * u_true * u_pred + c1) * (2 * std_pred * std_true + c2)
+    denom = (u_true ** 2 + u_pred ** 2 + c1) * (var_pred + var_true + c2)
+    ssim /= denom
+    ssim = tf.where(tf.is_nan(ssim), K.zeros_like(ssim), ssim)
+    return ssim
+
+def sum_metric(y_true, y_pred):
+    return ssim_metric(y_true, y_pred) + K.mean(K.abs(y_true - y_pred)) * 3
 
 class croppedSequence(Sequence):
 
-    def __init__(self, x_set, y_set, batch_size):
+    def __init__(self, x_set, y_set, batch_size, cropsize = 300, scale = 2):
         self.x, self.y = x_set, y_set
         self.batch_size = batch_size
-        self.cropsize = 300
-        self.scale = 4
+        self.cropsize = cropsize
+        self.scale = scale
+        for i in range(len(self.x)):
+            assert(self.x[0].shape[0] * scale == self.y.shape[0]), "Incompatible image shapes"
 
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
@@ -33,10 +61,10 @@ class croppedSequence(Sequence):
     def getRandomCrop(self):
         i = np.random.randint(0, len(self.x))
         w,h,_ = self.x[i].shape
-        if w < 300 or h < 300:
+        if w < self.cropsize or h < self.cropsize:
             return self.getRandomCrop()
-        x = np.random.randint(0, w-299)
-        y = np.random.randint(0, h-299)
+        x = np.random.randint(0, w-self.cropsize)
+        y = np.random.randint(0, h-self.cropsize)
         
         return (self.x[i][x: x + self.cropsize, y: y + self.cropsize, :],
                 self.y[i][x * self.scale: (x + self.cropsize) * self.scale,
@@ -66,17 +94,7 @@ upscaler.fit_generator(
         train_generator,
         steps_per_epoch=20,
         epochs=10)
-"""
-for epoch in range(1):
-    print("epoch #{}".format(epoch+1))
-    start = datetime.now()
-    for i in range(len(x_train)):
-        print("  image #{}".format(i+1))
-        upscaler.fit(np.array([x_train[i]]), np.array([y_train[i]]),
-                     epochs=1, batch_size=5, shuffle=True,
-                     verbose=0)
-    print("time: #{}".format(datetime.now() - start))
- """
+
 ##################### Output data
 
 outdir = "../output_{}".format(datetime.now().strftime("%y%m%d%H%M"))
