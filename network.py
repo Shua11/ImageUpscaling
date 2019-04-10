@@ -43,7 +43,7 @@ from keras.backend.tensorflow_backend import set_session
 import tensorflow as tf
 
 config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.5
+config.gpu_options.per_process_gpu_memory_fraction = 1.0
 set_session(tf.Session(config=config))
 #################################################################
 
@@ -54,8 +54,8 @@ class croppedSequence(Sequence):
         self.batch_size = batch_size
         self.cropsize = cropsize
         self.scale = scale
-        for i in range(len(self.x)):
-            assert(self.x[0].shape[0] * scale == self.y.shape[0]), "Incompatible image shapes"
+        #for i in range(len(self.x)):
+            #assert(self.x[0].shape[0] * scale == self.y.shape[0]), "Incompatible image shapes"
 
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
@@ -113,7 +113,7 @@ else:
 
 ###################### Train
 
-train_generator = croppedSequence(x_train, y_train, 5)
+train_generator = croppedSequence(x_train, y_train, 10)
 
 upscaler.fit_generator(
         train_generator,
@@ -122,8 +122,22 @@ upscaler.fit_generator(
 
 ##################### Output data
 
-outdir = "../output_{}".format(datetime.now().strftime("%y%m%d%H%M"))
-os.mkdir(outdir)
-        
-for i,x in enumerate(x_train):
-    array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir, i+1))
+doesSavePictures = input("Save pictures (y/n)? ")
+while doesSavePictures != "y" and doesSavePictures != "n":
+    doesSavePictures = input("Please state \'y\' or \'n\': ")
+
+if doesSavePictures == "y":
+    outdir = "../output_{}".format(datetime.now().strftime("%y%m%d%H%M"))
+    os.mkdir(outdir)
+            
+    for i,x in enumerate(x_train):
+        array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir, i+1))
+
+doesSaveModel = input("Save the current model (y/n)? ")
+while doesSaveModel != "y" and doesSaveModel != "n":
+    doesSaveModel = input("y/s please: ")
+
+if doesSaveModel == "y":
+    saveFilePath = input("Please specify filepath to save model: ")
+    upscaler.save(saveFilePath)
+
