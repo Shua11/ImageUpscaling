@@ -77,15 +77,6 @@ class croppedSequence(Sequence):
                 self.y[i][x * self.scale: (x + self.cropsize) * self.scale,
                           y * self.scale: (y + self.cropsize) * self.scale, :])
 
-##### Load images for training/testing #####
-# images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
-# images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
-
-images = [load_img('C:/Users/JoshuaPC/Pictures/HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
-images2= [load_img('C:/Users/JoshuaPC/Pictures/HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
-x_train = [img_to_array(x)/255 for x in images2]
-y_train = [img_to_array(x)/255 for x in images]
-
 
 ##### Start a new training model or load a pre-existing one? #####
 is_Loading_Exisiting_Model = input("Using pre-existing model (type \"y\" or \"n\")? ")
@@ -120,6 +111,15 @@ while doTraining != "y" and doTraining != "n":
     doTraining = input("Please type y/n: ")
 
 if doTraining == "y":
+    ##### Load images for training/testing #####
+    #images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+    #images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+
+    images = [load_img('C:/Users/JoshuaPC/Pictures/HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+    images2= [load_img('C:/Users/JoshuaPC/Pictures/HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+    x_train = [img_to_array(x)/255 for x in images2]
+    y_train = [img_to_array(x)/255 for x in images]
+
     train_generator = croppedSequence(x_train, y_train, 20)
 
     upscaler.fit_generator(
@@ -127,7 +127,7 @@ if doTraining == "y":
             steps_per_epoch=200,
             epochs=20)
 
-    ##################### Output Training Pictures
+    ## Output Training Pictures ##
 
     doesSavePictures = input("Save pictures (y/n)? ")
     while doesSavePictures != "y" and doesSavePictures != "n":
@@ -140,14 +140,14 @@ if doTraining == "y":
         for i,x in enumerate(x_train):
             array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir, i+1))
 
-################ Save Current Model?
-doesSaveModel = input("Save the current model (y/n)? ")
-while doesSaveModel != "y" and doesSaveModel != "n":
-    doesSaveModel = input("y/s please: ")
+    ################ Save Current Model?
+    doesSaveModel = input("Save the current model (y/n)? ")
+    while doesSaveModel != "y" and doesSaveModel != "n":
+        doesSaveModel = input("y/s please: ")
 
-if doesSaveModel == "y":
-    saveFilePath = input("Please specify filepath to save model: ")
-    upscaler.save(saveFilePath)
+    if doesSaveModel == "y":
+        saveFilePath = input("Please specify filepath to save model: ")
+        upscaler.save(saveFilePath)
 
 ################ Upscale Any Image We Want! >:D 
 upscaleOtherImages = input("Upscale images (y/n)? ")
@@ -155,8 +155,8 @@ while upscaleOtherImages != "y" and upscaleOtherImages != "n":
     upscaleOtherImages = input("Please type y/n: ")
 
 if upscaleOtherImages == "y":
-    sentinalVar = "t"
-    while sentinalVar == "t":
+    sentinalVar = "y"
+    while sentinalVar == "y":
         upscaleFilePath = input("File Path: ")
         image_to_upscale = np.array([img_to_array(load_img(upscaleFilePath))/255])
         outputPath = upscaleFilePath + ".png"
