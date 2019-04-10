@@ -43,7 +43,7 @@ from keras.backend.tensorflow_backend import set_session
 import tensorflow as tf
 
 config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 1.0
+config.gpu_options.per_process_gpu_memory_fraction = 0.7
 set_session(tf.Session(config=config))
 #################################################################
 
@@ -54,8 +54,6 @@ class croppedSequence(Sequence):
         self.batch_size = batch_size
         self.cropsize = cropsize
         self.scale = scale
-        #for i in range(len(self.x)):
-            #assert(self.x[0].shape[0] * scale == self.y.shape[0]), "Incompatible image shapes"
 
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
@@ -80,8 +78,11 @@ class croppedSequence(Sequence):
                           y * self.scale: (y + self.cropsize) * self.scale, :])
 
 ##### Load images for training/testing #####
-images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
-images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+# images = [load_img('../HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+# images2= [load_img('../HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+
+images = [load_img('C:/Users/JoshuaPC/Pictures/HD pics/DIV2K_train_HR/{:04d}.png'.format(i+1)) for i in range(22, 100)]
+images2= [load_img('C:/Users/JoshuaPC/Pictures/HD pics/resized_training/{:04d}.png'.format(i+1)) for i in range(22, 100)]
 x_train = [img_to_array(x)/255 for x in images2]
 y_train = [img_to_array(x)/255 for x in images]
 
@@ -119,12 +120,12 @@ while doTraining != "y" and doTraining != "n":
     doTraining = input("Please type y/n: ")
 
 if doTraining == "y":
-    train_generator = croppedSequence(x_train, y_train, 10)
+    train_generator = croppedSequence(x_train, y_train, 20)
 
     upscaler.fit_generator(
             train_generator,
-            steps_per_epoch=20,
-            epochs=10)
+            steps_per_epoch=200,
+            epochs=20)
 
     ##################### Output Training Pictures
 
