@@ -112,27 +112,34 @@ else:
     upscaler.compile(optimizer='adadelta', loss='mean_absolute_error')
 
 ###################### Train
+#### Do we want to train?
 
-train_generator = croppedSequence(x_train, y_train, 10)
+doTraining = input("Initiate Training (y/n)? ")
+while doTraining != "y" and doTraining != "n":
+    doTraining = input("Please type y/n: ")
 
-upscaler.fit_generator(
-        train_generator,
-        steps_per_epoch=20,
-        epochs=10)
+if doTraining == "y":
+    train_generator = croppedSequence(x_train, y_train, 10)
 
-##################### Output data
+    upscaler.fit_generator(
+            train_generator,
+            steps_per_epoch=20,
+            epochs=10)
 
-doesSavePictures = input("Save pictures (y/n)? ")
-while doesSavePictures != "y" and doesSavePictures != "n":
-    doesSavePictures = input("Please state \'y\' or \'n\': ")
+    ##################### Output Training Pictures
 
-if doesSavePictures == "y":
-    outdir = "../output_{}".format(datetime.now().strftime("%y%m%d%H%M"))
-    os.mkdir(outdir)
-            
-    for i,x in enumerate(x_train):
-        array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir, i+1))
+    doesSavePictures = input("Save pictures (y/n)? ")
+    while doesSavePictures != "y" and doesSavePictures != "n":
+        doesSavePictures = input("Please state \'y\' or \'n\': ")
 
+    if doesSavePictures == "y":
+        outdir = "../output_{}".format(datetime.now().strftime("%y%m%d%H%M"))
+        os.mkdir(outdir)
+                
+        for i,x in enumerate(x_train):
+            array_to_img(upscaler.predict(np.array([x]))[0]).save("{}/{:04d}.png".format(outdir, i+1))
+
+################ Save Current Model?
 doesSaveModel = input("Save the current model (y/n)? ")
 while doesSaveModel != "y" and doesSaveModel != "n":
     doesSaveModel = input("y/s please: ")
@@ -141,3 +148,19 @@ if doesSaveModel == "y":
     saveFilePath = input("Please specify filepath to save model: ")
     upscaler.save(saveFilePath)
 
+################ Upscale Any Image We Want! >:D 
+upscaleOtherImages = input("Upscale images (y/n)? ")
+while upscaleOtherImages != "y" and upscaleOtherImages != "n":
+    upscaleOtherImages = input("Please type y/n: ")
+
+if upscaleOtherImages == "y":
+    sentinalVar = "t"
+    while sentinalVar == "t":
+        upscaleFilePath = input("File Path: ")
+        image_to_upscale = np.array([img_to_array(load_img(upscaleFilePath))/255])
+        outputPath = upscaleFilePath + ".png"
+        upscaledImage = array_to_img(upscaler.predict(image_to_upscale)[0])
+        upscaledImage.save(outputPath)
+        sentinalVar = input("Process another image(y/n)? ")
+        while sentinalVar != "y" and sentinalVar != "n":
+            sentinalVar = input("Please type y/n: ")
